@@ -20,6 +20,7 @@ module Servant.CSV.Cassava where
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative        ((<$>))
 #endif
+import           Control.Monad.Except (ExceptT, MonadError(..))
 import           Data.Csv
 import           Data.Proxy         (Proxy (..))
 import           Data.Typeable      (Typeable)
@@ -84,24 +85,26 @@ instance EncodeOpts DefaultEncodeOpts where
 -- | Decode with 'decodeByNameWith'
 instance ( FromNamedRecord a, DecodeOpts opt
          ) => MimeUnrender (CSV', opt) (Header, [a]) where
-    mimeUnrender _ bs = fmap toList <$> decodeByNameWith (decodeOpts p) bs
+    mimeUnrender _ bs = either throwError return $
+      fmap toList <$> decodeByNameWith (decodeOpts p) bs
       where p = Proxy :: Proxy opt
 
 -- | Decode with 'decodeWith'. Assumes data has headers, which are stripped.
 instance ( FromRecord a, DecodeOpts opt
          ) => MimeUnrender (CSV', opt) [a] where
-    mimeUnrender _ bs = toList <$> decodeWith (decodeOpts p) HasHeader bs
+    mimeUnrender _ bs = either throwError return $
+      toList <$> decodeWith (decodeOpts p) HasHeader bs
       where p = Proxy :: Proxy opt
 
 instance ( FromNamedRecord a, DecodeOpts opt
          ) => MimeUnrender (CSV', opt) (Header, Vector a) where
-    mimeUnrender _ = decodeByNameWith (decodeOpts p)
+    mimeUnrender _ = either throwError return . decodeByNameWith (decodeOpts p)
       where p = Proxy :: Proxy opt
 
 -- | Decode with 'decodeWith'. Assumes data has headers, which are stripped.
 instance ( FromRecord a, DecodeOpts opt
          ) => MimeUnrender (CSV', opt) (Vector a) where
-    mimeUnrender _ = decodeWith (decodeOpts p) HasHeader
+    mimeUnrender _ = either throwError return . decodeWith (decodeOpts p) HasHeader
       where p = Proxy :: Proxy opt
 
 -- ** Decode Options
