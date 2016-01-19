@@ -21,7 +21,8 @@ module Servant.Server.Internal
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative         ((<$>))
 #endif
-import           Control.Monad.Trans.Except (ExceptT)
+import           Control.Monad.Trans.Except (ExceptT, runExceptT)
+import           Control.Monad.Trans        (liftIO)
 import qualified Data.ByteString            as B
 import qualified Data.ByteString.Lazy       as BL
 import qualified Data.Map                   as M
@@ -40,6 +41,7 @@ import           Network.Wai                (Application, Request, Response,
                                              rawQueryString, remoteHost,
                                              requestHeaders, requestMethod,
                                              responseLBS, vault)
+import           System.IO.Unsafe           (unsafeInterleaveIO)
 import           Web.HttpApiData            (FromHttpApiData)
 import           Web.HttpApiData.Internal   (parseHeaderMaybe,
                                              parseQueryParamMaybe,
@@ -400,8 +402,9 @@ instance ( AllCTUnrender list a, HasServer sublayout
         -- http://www.w3.org/2001/tag/2002/0129-mime
         let contentTypeH = fromMaybe "application/octet-stream"
                          $ lookup hContentType $ requestHeaders request
-        mrqbody <- handleCTypeH (Proxy :: Proxy list) (cs contentTypeH)
-               <$> lazyRequestBody request
+        lbody <- lazyRequestBody request
+        mrqbody <- traverse (liftIO . unsafeInterleaveIO . runExceptT) $
+          handleCTypeH (Proxy :: Proxy list) (cs contentTypeH) lbody
         case mrqbody of
           Nothing        -> return $ FailFatal err415
           Just (Left e)  -> return $ FailFatal err400 { errBody = cs e }
