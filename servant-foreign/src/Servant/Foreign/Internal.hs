@@ -29,6 +29,7 @@ import           GHC.TypeLits
 import qualified Network.HTTP.Types    as HTTP
 import           Prelude               hiding (concat)
 import           Servant.API
+import           Servant.API.TypeLevel
 
 -- | Function name builder that simply concat each part together
 concatCase :: FunctionName -> Text
@@ -114,15 +115,6 @@ captureArg                 _ = error "captureArg called on non capture"
 
 defReq :: Req
 defReq = Req defUrl "GET" [] Nothing "" []
-
--- | To be used exclusively as a "negative" return type/constraint
--- by @'Elem`@ type family.
-class NotFound
-
-type family Elem (a :: *) (ls::[*]) :: Constraint where
-  Elem a '[]         = NotFound
-  Elem a (a ': list) = ()
-  Elem a (b ': list) = Elem a list
 
 -- | 'HasForeignType' maps Haskell types with types in the target
 -- language of your backend. For example, let's say you're
