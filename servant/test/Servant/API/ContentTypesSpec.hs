@@ -14,9 +14,9 @@ import           Data.Monoid
 import           Data.Traversable
 #endif
 import           Control.Arrow
-import           Control.Monad             (when)
-import           Control.Monad.Except      (runExceptT)
-import           Control.Monad.Trans       (liftIO)
+import           Control.Monad              (when)
+import           Control.Monad.Trans.Except (runExceptT)
+import           Control.Monad.IO.Class     (liftIO)
 import           Data.Aeson
 import           Data.ByteString.Char8     (ByteString, append, pack)
 import qualified Data.ByteString.Lazy      as BSL

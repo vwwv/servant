@@ -77,7 +77,7 @@ import           Control.Applicative              ((*>), (<*))
 #endif
 import           Control.Arrow                    (left)
 import           Control.Monad
-import           Control.Monad.Except             (ExceptT, MonadError(..))
+import           Control.Monad.Trans.Except       (ExceptT, throwE)
 import           Data.Aeson                       (FromJSON(..), ToJSON(..), encode)
 import           Data.Aeson.Parser                (value)
 import           Data.Aeson.Types                 (parseEither)
@@ -185,7 +185,7 @@ instance OVERLAPPABLE_
 --
 -- >>> import Network.HTTP.Media hiding (Accept)
 -- >>> import qualified Data.ByteString.Lazy.Char8 as BSC
--- >>> import Control.Monad.Except
+-- >>> import Control.Monad.Trans.Except
 -- >>> data MyContentType = MyContentType String
 --
 -- >>> :{
@@ -197,7 +197,7 @@ instance OVERLAPPABLE_
 --instance Read a => MimeUnrender MyContentType a where
 --    mimeUnrender _ bs = case BSC.take 12 bs of
 --      "MyContentType" -> return . read . BSC.unpack $ BSC.drop 12 bs
---      _ -> throwError "didn't start with the magic incantation"
+--      _ -> throwE "didn't start with the magic incantation"
 -- :}
 --
 -- >>> type MyAPI = "path" :> ReqBody '[MyContentType] Int :> Get '[JSON] Int
@@ -347,23 +347,23 @@ eitherDecodeLenient input =
           <* skipSpace
           <* (endOfInput <?> "trailing junk after valid JSON")
 
--- | @either throwError return . eitherDecodeLenient@
+-- | @either throwE return . eitherDecodeLenient@
 instance FromJSON a => MimeUnrender JSON a where
-    mimeUnrender _ = either throwError return . eitherDecodeLenient
+    mimeUnrender _ = either throwE return . eitherDecodeLenient
 
--- | @either throwError return . (decodeFormUrlEncoded >=> fromFormUrlEncoded)@
+-- | @either throwE return . (decodeFormUrlEncoded >=> fromFormUrlEncoded)@
 -- Note that the @mimeUnrender p (mimeRender p x) == Right x@ law only
 -- holds if every element of x is non-null (i.e., not @("", "")@)
 instance FromFormUrlEncoded a => MimeUnrender FormUrlEncoded a where
-    mimeUnrender _ = either throwError return . (decodeFormUrlEncoded >=> fromFormUrlEncoded)
+    mimeUnrender _ = either throwE return . (decodeFormUrlEncoded >=> fromFormUrlEncoded)
 
--- | @either throwError return . left show . TextL.decodeUtf8'@
+-- | @either throwE return . left show . TextL.decodeUtf8'@
 instance MimeUnrender PlainText TextL.Text where
-    mimeUnrender _ = either throwError return . left show . TextL.decodeUtf8'
+    mimeUnrender _ = either throwE return . left show . TextL.decodeUtf8'
 
--- | @either throwError return . left show . TextS.decodeUtf8' . toStrict@
+-- | @either throwE return . left show . TextS.decodeUtf8' . toStrict@
 instance MimeUnrender PlainText TextS.Text where
-    mimeUnrender _ = either throwError return . left show . TextS.decodeUtf8' . toStrict
+    mimeUnrender _ = either throwE return . left show . TextS.decodeUtf8' . toStrict
 
 -- | @return . BC.unpack@
 instance MimeUnrender PlainText String where
